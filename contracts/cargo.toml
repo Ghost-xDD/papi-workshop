@@ -1,18 +1,15 @@
 [package]
-name = "todo_app"
+name = "prediction_market"
 version = "0.1.0"
-authors = ["hongthaipham <hongthaipro@gmail.com>", "joel george <idiaghegeorge9@gmail.com>"]
-edition = "2024"
+authors = ["ghostxd"]
+edition = "2021"
 
 [dependencies]
 ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", version = "6.0.0-alpha.4", default-features = false, features = ["unstable-hostfn"] }
-# ink = { version = "6.0.0-alpha", default-features = false }
-# scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 
 [dev-dependencies]
 ink_e2e = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.4", version = "6.0.0-alpha.4" }
 scale-info = { version = "2.6", default-features = false, features = ["derive"] }
-# ink_e2e = { version = "6.0.0-alpha" }
 
 [lib]
 path = "lib.rs"

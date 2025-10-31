@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 #[ink::contract]
-mod todo_app {
+mod prediction_market {
     use ink::prelude::string::String;
     use ink::storage::Mapping;
 
@@ -15,86 +15,104 @@ mod todo_app {
         )
     )]
     #[ink::scale_derive(Encode, Decode, TypeInfo)]
-    pub struct Todo {
+    pub struct Market {
         pub id: u64,
-        pub content: String,
-        pub completed: bool,
+        pub question: String,
+        pub yes_total: u64,
+        pub no_total: u64,
+        pub resolved: bool,
+        pub yes_wins: bool,
     }
 
     #[ink(storage)]
     #[derive(Default)]
-    pub struct TodoApp {
-        todos: Mapping<(AccountId, u64), Todo>,
-        counter: Mapping<AccountId, u64>,
+    pub struct PredictionMarket {
+        markets: Mapping<u64, Market>,
+        counter: u64,
+        // (market_id, user_account, voted_yes) => amount
+        votes: Mapping<(u64, AccountId, bool), u64>,
     }
 
-    impl TodoApp {
+    impl PredictionMarket {
         #[ink(constructor)]
         pub fn new() -> Self {
             Self {
-                todos: Mapping::default(),
-                counter: Mapping::default(),
+                markets: Mapping::default(),
+                counter: 0,
+                votes: Mapping::default(),
             }
         }
 
         #[ink(message)]
-        pub fn add_todo(&mut self, content: String) {
-
+        pub fn create_market(&mut self, question: String) -> u64 {
             let caller_h160 = self.env().caller();
-
             let mut data = [0u8; 32];
             data[12..].copy_from_slice(caller_h160.as_bytes());
-            let caller = AccountId::from(data);
+            let _caller = AccountId::from(data);
 
-            // ✅ use &caller, not caller
-            let id = self.counter.get(&caller).unwrap_or_default();
+            let id = self.counter;
 
-            let todo = Todo {
+            let market = Market {
                 id,
-                content,
-                completed: false,
+                question,
+                yes_total: 0,
+                no_total: 0,
+                resolved: false,
+                yes_wins: false,
             };
-            // ✅ use &caller for Mapping key
-            self.todos.insert((&caller, id), &todo);
 
-            let next_id = id.checked_add(1).unwrap_or(id + 1);
-            self.counter.insert(&caller, &next_id);
+            self.markets.insert(id, &market);
+            self.counter = self.counter.saturating_add(1);
+
+            id
         }
 
         #[ink(message)]
-        pub fn toggle_todo(&mut self, id: u64) -> Option<bool> {
+        pub fn vote(&mut self, market_id: u64, vote_yes: bool, amount: u64) {
             let caller_h160 = self.env().caller();
-
             let mut data = [0u8; 32];
             data[12..].copy_from_slice(caller_h160.as_bytes());
             let caller = AccountId::from(data);
 
-            // ✅ use &caller
-            if let Some(mut todo) = self.todos.get((&caller, id)) {
-                todo.completed = !todo.completed;
-                self.todos.insert((&caller, id), &todo);
-                Some(todo.completed)
-            } else {
-                None
+            if let Some(mut market) = self.markets.get(market_id) {
+                // Update totals
+                if vote_yes {
+                    market.yes_total = market.yes_total.saturating_add(amount);
+                } else {
+                    market.no_total = market.no_total.saturating_add(amount);
+                }
+
+                // Store user vote
+                let key = (market_id, caller, vote_yes);
+                let current = self.votes.get(&key).unwrap_or_default();
+                self.votes.insert(&key, &(current.saturating_add(amount)));
+
+                self.markets.insert(market_id, &market);
             }
         }
 
         #[ink(message)]
-        pub fn get_todo(&self, id: u64) -> Option<Todo> {
-            let caller_h160 = self.env().caller();
-
-            let mut data = [0u8; 32];
-            data[12..].copy_from_slice(caller_h160.as_bytes());
-            let caller = AccountId::from(data);
-            // ✅ use &caller
-            self.todos.get((&caller, id))
+        pub fn resolve(&mut self, market_id: u64, yes_wins: bool) {
+            if let Some(mut market) = self.markets.get(market_id) {
+                market.resolved = true;
+                market.yes_wins = yes_wins;
+                self.markets.insert(market_id, &market);
+            }
         }
 
         #[ink(message)]
-        pub fn get_counter(&self, account_id: AccountId) -> u64 {
-            // ✅ use &account_id
-            self.counter.get(&account_id).unwrap_or_default()
+        pub fn get_market(&self, market_id: u64) -> Option<Market> {
+            self.markets.get(market_id)
+        }
+
+        #[ink(message)]
+        pub fn get_vote(&self, market_id: u64, user: AccountId, voted_yes: bool) -> u64 {
+            self.votes.get(&(market_id, user, voted_yes)).unwrap_or_default()
+        }
+
+        #[ink(message)]
+        pub fn get_counter(&self) -> u64 {
+            self.counter
         }
     }
-    
 }
