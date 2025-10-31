@@ -8,7 +8,7 @@ import { Binary } from 'polkadot-api';
 import { useEffect, useState } from 'react';
 import Footer from './components/Footer';
 import Header from './components/Header';
-import { contracts } from './descriptors';
+import { contracts } from './descriptors/dist';
 
 import { useConnect } from './hooks/useConnect';
 
@@ -26,9 +26,13 @@ function App() {
   const [, setTodoCounter] = useState<bigint>(0n);
   const [addTodoLoader, setAddTodoLoader] = useState<boolean>(false);
 
-  const { client } = sdk('passet');
+  // TODO: Step 1 - Initialize the PAPI client
+  // Get the client from sdk('passet')
+  // const { client } = sdk('passet');
 
-  const inkSdk = createInkSdk(client);
+  // TODO: Step 2 - Create the Ink SDK instance
+  // Use createInkSdk() to create an Ink SDK instance from the client
+  // const inkSdk = createInkSdk(client);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = null;
@@ -38,9 +42,9 @@ function App() {
         const checkMapping = async () => {
           setIsLoading(true);
           try {
-            const mapped = await inkSdk.addressIsMapped(
-              selectedAccount.address
-            );
+            // TODO: Step 3 - Check if address is mapped
+            // Use inkSdk.addressIsMapped() to check if the account is mapped
+            const mapped = false; // Replace with actual check
 
             if (!mapped) {
               const provider = new WsProvider(
@@ -116,135 +120,111 @@ function App() {
   const getTodo = async (id: bigint) => {
     if (!selectedAccount) return;
 
-    const todoContract = inkSdk.getContract(contracts.todo, CONTRACT_ADDRESS);
+    // TODO: Step 4 - Get the contract instance
+    // Use inkSdk.getContract() to get the todo contract
+    // const todoContract = inkSdk.getContract(contracts.todo, CONTRACT_ADDRESS);
 
-    const result = await todoContract.query('get_todo', {
-      data: { id },
-      origin: selectedAccount.address,
-    });
+    // TODO: Step 5 - Query the contract
+    // Use todoContract.query() to get a specific todo
+    // const result = await todoContract.query('get_todo', {
+    //   data: { id },
+    //   origin: selectedAccount.address,
+    // });
 
-    console.warn(result, 'getTodo result');
-    return result;
+    // console.warn(result, 'getTodo result');
+    // return result;
   };
 
   const getCounter = async () => {
     if (!selectedAccount) return;
 
-    const todoContract = inkSdk.getContract(contracts.todo, CONTRACT_ADDRESS);
+    // TODO: Step 6 - Get the contract instance
+    // const todoContract = inkSdk.getContract(contracts.todo, CONTRACT_ADDRESS);
 
-    const result = await todoContract.query('get_counter', {
-      data: {
-        account_id: Binary.fromHex(
-          substrateToEthereumAddress(selectedAccount.address)
-        ),
-      },
-      origin: selectedAccount.address,
-    });
+    // TODO: Step 7 - Query the counter
+    // Use todoContract.query() to get the counter for the current account
+    // const result = await todoContract.query('get_counter', {
+    //   data: {
+    //     account_id: Binary.fromHex(
+    //       substrateToEthereumAddress(selectedAccount.address)
+    //     ),
+    //   },
+    //   origin: selectedAccount.address,
+    // });
 
-    console.warn(result, 'getCounter result');
-    return result;
+    // console.warn(result, 'getCounter result');
+    // return result;
   };
 
+  // TODO: Step 8 - Implement fetchTodos function
+  // This function should:
+  // 1. Call getCounter() to get the total number of todos
+  // 2. Loop through all todos and call getTodo() for each
+  // 3. Build a todosList array with all the todos
+  // 4. Call setTodos(todosList) to update the state
   const fetchTodos = async () => {
     if (!selectedAccount) return;
 
     try {
-      // First get the counter to know how many todos we have
-      const counterResult = await getCounter();
-
-      if (counterResult?.success) {
-        const count = counterResult.value.response - 1n;
-
-        setTodoCounter(count);
-
-        const todosList: Array<{
-          id: bigint;
-          amount: number;
-          content: string;
-          completed: boolean;
-        }> = [];
-        for (let i = 0n; i <= count; i++) {
-          try {
-            const todoResult = await getTodo(i);
-            if (todoResult?.success) {
-              todosList.push({
-                id: i,
-                amount: Number(
-                  (todoResult.value.response?.amount[0] || 0n) /
-                    (10n * 10n ** 10n)
-                ),
-                content: todoResult.value.response?.content ?? '',
-                completed: todoResult.value.response?.completed ?? false,
-              });
-            }
-          } catch (error) {
-            console.error(`Error fetching todo ${i}:`, error);
-          }
-        }
-
-        setTodos(todosList);
-        console.warn('Fetched todos:', todosList);
-      }
+      // Your code here
+      console.log('TODO: Implement fetchTodos');
     } catch (error) {
       console.error('Error fetching todos:', error);
     }
   };
 
-  // Fetch todos when account is ready
-  useEffect(() => {
-    if (selectedAccount && !isLoading) {
-      fetchTodos();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAccount, isLoading]);
+  // TODO: Step 9 - Add useEffect to fetch todos when account is ready
+//   This useEffect should call fetchTodos() when selectedAccount and isLoading change
+//   useEffect(() => {
+//     if (selectedAccount && !isLoading) {
+//       fetchTodos();
+//     }
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [selectedAccount, isLoading]);
 
+  // TODO: Step 10 - Implement addTodo function
+  // This function should:
+  // 1. Get the signer using polkadotSigner()
+  // 2. Get the contract instance
+  // 3. Use todoContract.send() to send an 'add_todo' transaction
+  // 4. Sign and submit the transaction
+  // 5. Refresh todos after adding
   const addTodo = async (content: string) => {
     if (!selectedAccount || addTodoLoader) return;
 
     setAddTodoLoader(true);
 
-    const signer = (await polkadotSigner())!;
-    const todoContract = inkSdk.getContract(contracts.todo, CONTRACT_ADDRESS);
-
-    const result = await todoContract
-      .send('add_todo', {
-        data: { content },
-        origin: selectedAccount.address,
-        value: 10n * 10n ** 10n,
-      })
-      .signAndSubmit(signer);
-
-    setAddTodoLoader(false);
-
-    // Refresh todos after adding
-    setTimeout(() => {
-      fetchTodos();
-    }, 2000);
-
-    return result;
+    try {
+      // Your code here
+      console.log('TODO: Implement addTodo with content:', content);
+    } catch (error) {
+      console.error('Error adding todo:', error);
+    } finally {
+      setAddTodoLoader(false);
+    }
   };
 
   const toggleTodo = async (id: bigint) => {
-    if (!selectedAccount) return;
+    // if (!selectedAccount) return;
 
-    const signer = (await polkadotSigner())!;
-    const todoContract = inkSdk.getContract(contracts.todo, CONTRACT_ADDRESS);
+    // const signer = (await polkadotSigner())!;
+    // const todoContract = inkSdk.getContract(contracts.todo, CONTRACT_ADDRESS);
 
-    const result = await todoContract
-      .send('toggle_todo', {
-        data: { id },
-        origin: selectedAccount.address,
-      })
-      .signAndSubmit(signer);
+    // const result = await todoContract
+    //   .send('toggle_todo', {
+    //     data: { id },
+    //     origin: selectedAccount.address,
+    //   })
+    //   .signAndSubmit(signer);
 
-    console.warn(result, 'toggleTodo result');
+    // console.warn(result, 'toggleTodo result');
 
-    // Refresh todos after toggling
-    setTimeout(() => {
-      fetchTodos();
-    }, 2000);
+    // // Refresh todos after toggling
+    // setTimeout(() => {
+    //   fetchTodos();
+    // }, 2000);
 
-    return result;
+    // return result;
   };
 
   return (
