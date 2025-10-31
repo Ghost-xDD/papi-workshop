@@ -19,9 +19,11 @@
     "@polkadot/util-crypto": "^13.5.5",
     "@talismn/connect-wallets": "^1.2.8",
     "@xstate/store": "^3.8.5",
+    "canvas-confetti": "^1.9.4",
     "polkadot-api": "^1.16.1",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^5.2.1",
